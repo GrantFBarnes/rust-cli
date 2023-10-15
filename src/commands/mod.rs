@@ -56,6 +56,11 @@ fn run_command(command: &str, show_output: bool) -> Result<(), &str> {
 }
 
 fn get_command(command: &str) -> Option<Command> {
+    // cannot handle redirected output
+    if command.contains("|") || command.contains("<") || command.contains(">") {
+        return None;
+    }
+
     let mut command_split = command.split_whitespace();
 
     let program: Option<&str> = command_split.next();
