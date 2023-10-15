@@ -1,6 +1,5 @@
 pub mod ansi;
 pub mod commands;
-pub mod environ;
 pub mod prompts;
 
 #[cfg(test)]
