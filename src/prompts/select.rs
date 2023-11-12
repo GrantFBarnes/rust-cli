@@ -1,4 +1,4 @@
-use std::io::{self, Read};
+use std::io::{self, Error, ErrorKind, Read};
 
 use crate::{ansi, commands};
 
@@ -13,15 +13,15 @@ enum Motion {
     NONE,
 }
 
-pub fn select(title: &str, options: Vec<String>, details: Vec<String>) -> Result<String, &str> {
+pub fn select(title: &str, options: Vec<String>, details: Vec<String>) -> Result<String, Error> {
     let indexes: Vec<usize> = get_select_indexes(title, &options, &details, false)?;
     if indexes.len() != 1 {
-        return Err("selection invalid");
+        return Err(Error::new(ErrorKind::InvalidInput, "selection invalid"));
     }
 
     let result: Option<&String> = options.get(indexes[0]);
     if result.is_none() {
-        return Err("index invalid");
+        return Err(Error::new(ErrorKind::InvalidInput, "index invalid"));
     }
 
     Ok(result.unwrap().to_string())
@@ -31,7 +31,7 @@ pub fn mutli_select(
     title: &str,
     options: Vec<String>,
     details: Vec<String>,
-) -> Result<Vec<String>, &str> {
+) -> Result<Vec<String>, Error> {
     let indexes: Vec<usize> = get_select_indexes(title, &options, &details, true)?;
 
     let mut result: Vec<String> = vec![];
@@ -51,9 +51,9 @@ fn get_select_indexes(
     options: &Vec<String>,
     details: &Vec<String>,
     multi: bool,
-) -> Result<Vec<usize>, &'static str> {
+) -> Result<Vec<usize>, Error> {
     if options.len() == 0 {
-        return Err("no options provided");
+        return Err(Error::new(ErrorKind::InvalidInput, "no options provided"));
     }
 
     if title.len() > 0 {
@@ -93,7 +93,7 @@ fn get_select_indexes(
                 }
             }
             Motion::SELECT => selected_indexes[current_index] = !selected_indexes[current_index],
-            Motion::EXIT => return Err("no selection made"),
+            Motion::EXIT => return Err(Error::new(ErrorKind::InvalidInput, "no selection made")),
             Motion::NONE => continue,
         }
 
@@ -157,14 +157,11 @@ fn print_options(
     }
 }
 
-fn get_keypress_motion() -> Result<Motion, &'static str> {
+fn get_keypress_motion() -> Result<Motion, Error> {
     commands::run_silent("stty -F /dev/tty cbreak min 1")?;
     let mut buffer: [u8; 3] = [0; 3];
-    let keypress: Result<usize, io::Error> = io::stdin().read(&mut buffer);
+    io::stdin().read(&mut buffer)?;
     commands::run("stty -F /dev/tty sane")?;
-    if keypress.is_err() {
-        return Err("failed to read keypress");
-    }
 
     ansi::cursor::line_start();
     ansi::erase::line();

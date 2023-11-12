@@ -1,18 +1,18 @@
-use std::io::{self, Read};
+use std::io::{self, Error, ErrorKind, Read};
 
 use crate::{ansi, commands};
 
 use super::flush_stdout;
 
-pub fn text(message: &str) -> Result<String, &str> {
+pub fn text(message: &str) -> Result<String, Error> {
     prompt(message, false)
 }
 
-pub fn secret(message: &str) -> Result<String, &str> {
+pub fn secret(message: &str) -> Result<String, Error> {
     prompt(message, true)
 }
 
-fn prompt(message: &str, hide_input: bool) -> Result<String, &str> {
+fn prompt(message: &str, hide_input: bool) -> Result<String, Error> {
     print!("{}", message);
     flush_stdout()?;
 
@@ -35,18 +35,15 @@ fn prompt(message: &str, hide_input: bool) -> Result<String, &str> {
     Ok(result.into_iter().collect())
 }
 
-fn get_keypress_char() -> Result<char, &'static str> {
+fn get_keypress_char() -> Result<char, Error> {
     commands::run_silent("stty -F /dev/tty cbreak min 1")?;
     let mut buffer: [u8; 1] = [0; 1];
-    let keypress: Result<(), io::Error> = io::stdin().read_exact(&mut buffer);
+    io::stdin().read_exact(&mut buffer)?;
     commands::run("stty -F /dev/tty sane")?;
-    if keypress.is_err() {
-        return Err("failed to read char");
-    }
 
     let result: Option<char> = char::from_u32(buffer[0] as u32);
     if result.is_none() {
-        return Err("failed to convert u8 to char");
+        return Err(Error::new(ErrorKind::Other, "failed to convert u8 to char"));
     }
 
     Ok(result.unwrap())

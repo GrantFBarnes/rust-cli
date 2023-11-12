@@ -1,39 +1,37 @@
-use std::io::Error;
-use std::process::{Child, Command, ExitStatus, Output, Stdio};
+use std::io::{Error, ErrorKind};
+use std::process::{Command, Stdio};
 use std::string::FromUtf8Error;
 
-pub fn run(command: &str) -> Result<(), &str> {
+pub fn run(command: &str) -> Result<(), Error> {
     run_command(command, true)
 }
 
-pub fn run_silent(command: &str) -> Result<(), &str> {
+pub fn run_silent(command: &str) -> Result<(), Error> {
     run_command(command, false)
 }
 
-pub fn output(command: &str) -> Result<String, &str> {
+pub fn output(command: &str) -> Result<String, Error> {
     let command: Option<Command> = get_command(command);
     if command.is_none() {
-        return Err("command not valid");
+        return Err(Error::new(ErrorKind::Other, "command not valid"));
     }
 
-    let output: Result<Output, Error> = command.unwrap().output();
-    if output.is_err() {
-        return Err("failed to get command output");
-    }
-    let output: Output = output.unwrap();
-    let output: Vec<u8> = output.stdout;
+    let output: Vec<u8> = command.unwrap().output()?.stdout;
     let output: Result<String, FromUtf8Error> = String::from_utf8(output);
     if output.is_err() {
-        return Err("failed to convert command output");
+        return Err(Error::new(
+            ErrorKind::Other,
+            "failed to convert command output",
+        ));
     }
 
     Ok(output.unwrap())
 }
 
-fn run_command(command: &str, show_output: bool) -> Result<(), &str> {
+fn run_command(command: &str, show_output: bool) -> Result<(), Error> {
     let command: Option<Command> = get_command(command);
     if command.is_none() {
-        return Err("command not valid");
+        return Err(Error::new(ErrorKind::Other, "command not valid"));
     }
     let mut command: Command = command.unwrap();
     let command: &mut Command = if show_output {
@@ -42,16 +40,7 @@ fn run_command(command: &str, show_output: bool) -> Result<(), &str> {
         command.stdout(Stdio::null()).stderr(Stdio::null())
     };
 
-    let result: Result<Child, Error> = command.spawn();
-    if result.is_err() {
-        return Err("failed to run command");
-    }
-
-    let result: Result<ExitStatus, Error> = result.unwrap().wait();
-    if result.is_err() {
-        return Err("failed to wait for command");
-    }
-
+    command.spawn()?.wait()?;
     Ok(())
 }
 
