@@ -11,12 +11,7 @@ pub fn run_silent(command: &str) -> Result<(), Error> {
 }
 
 pub fn output(command: &str) -> Result<String, Error> {
-    let command: Option<Command> = get_command(command);
-    if command.is_none() {
-        return Err(Error::new(ErrorKind::Other, "command not valid"));
-    }
-
-    let output: Vec<u8> = command.unwrap().output()?.stdout;
+    let output: Vec<u8> = get_command(command)?.output()?.stdout;
     let output: Result<String, FromUtf8Error> = String::from_utf8(output);
     if output.is_err() {
         return Err(Error::new(
@@ -29,35 +24,35 @@ pub fn output(command: &str) -> Result<String, Error> {
 }
 
 fn run_command(command: &str, show_output: bool) -> Result<(), Error> {
-    let command: Option<Command> = get_command(command);
-    if command.is_none() {
-        return Err(Error::new(ErrorKind::Other, "command not valid"));
-    }
-    let mut command: Command = command.unwrap();
-    let command: &mut Command = if show_output {
-        command.stdout(Stdio::inherit()).stderr(Stdio::inherit())
+    if show_output {
+        get_command(command)?
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .spawn()?
+            .wait()?;
     } else {
-        command.stdout(Stdio::null()).stderr(Stdio::null())
+        get_command(command)?
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?
+            .wait()?;
     };
-
-    command.spawn()?.wait()?;
     Ok(())
 }
 
-fn get_command(command: &str) -> Option<Command> {
-    // cannot handle redirected output
+fn get_command(command: &str) -> Result<Command, Error> {
     if command.contains("|") || command.contains("<") || command.contains(">") {
-        return None;
+        return Err(Error::new(
+            ErrorKind::InvalidInput,
+            "cannot handle redirected output",
+        ));
     }
 
     let mut command_split = command.split_whitespace();
-
-    let program: Option<&str> = command_split.next();
-    if program.is_none() {
-        return None;
-    }
-
-    let mut command: Command = Command::new(program.unwrap());
+    let program: &str = command_split
+        .next()
+        .ok_or(Error::new(ErrorKind::InvalidInput, "program not provided"))?;
+    let mut command: Command = Command::new(program);
     loop {
         let arg: Option<&str> = command_split.next();
         if arg.is_none() {
@@ -66,5 +61,5 @@ fn get_command(command: &str) -> Option<Command> {
         command.arg(arg.unwrap());
     }
 
-    Option::from(command)
+    Ok(command)
 }
