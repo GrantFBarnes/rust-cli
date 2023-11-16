@@ -5,15 +5,16 @@ use crate::{ansi, commands};
 
 use super::flush_stdout;
 
-enum Motion {
-    SUBMIT,
-    UP,
-    DOWN,
-    LEFT,
-    RIGHT,
-    SELECT,
-    EXIT,
-    NONE,
+enum Action {
+    Submit,
+    Up,
+    Down,
+    Left,
+    Right,
+    Select,
+    SelectAll,
+    Exit,
+    None,
 }
 
 pub struct Select {
@@ -180,22 +181,22 @@ impl Select {
         self.print_options(current_index, &selected_indexes);
 
         loop {
-            match get_keypress_motion()? {
-                Motion::SUBMIT => break,
-                Motion::UP => {
+            match get_keypress_action()? {
+                Action::Submit => break,
+                Action::Up => {
                     if current_index == 0 {
                         current_index = self.options.len() - 1;
                     } else {
                         current_index -= 1
                     }
                 }
-                Motion::DOWN => {
+                Action::Down => {
                     current_index += 1;
                     if current_index >= self.options.len() {
                         current_index = 0;
                     }
                 }
-                Motion::LEFT => {
+                Action::Left => {
                     if self.last_page_index == 0 {
                         continue;
                     }
@@ -207,7 +208,7 @@ impl Select {
                         current_index = (current_page - 1) * self.rows_per_page;
                     }
                 }
-                Motion::RIGHT => {
+                Action::Right => {
                     if self.last_page_index == 0 {
                         continue;
                     }
@@ -219,13 +220,21 @@ impl Select {
                         current_index = (current_page + 1) * self.rows_per_page;
                     }
                 }
-                Motion::SELECT => {
+                Action::Select => {
                     if self.allow_multi_select {
                         selected_indexes[current_index] = !selected_indexes[current_index]
                     }
                 }
-                Motion::EXIT => return Err(Error::new(ErrorKind::Other, "no selection made")),
-                Motion::NONE => continue,
+                Action::SelectAll => {
+                    if self.allow_multi_select {
+                        let all_selected = selected_indexes.iter().all(|&x| x);
+                        for i in 0..selected_indexes.len() {
+                            selected_indexes[i] = !all_selected;
+                        }
+                    }
+                }
+                Action::Exit => return Err(Error::new(ErrorKind::Other, "no selection made")),
+                Action::None => continue,
             }
 
             self.print_options(current_index, &selected_indexes);
@@ -307,7 +316,7 @@ impl Select {
     }
 }
 
-fn get_keypress_motion() -> Result<Motion, Error> {
+fn get_keypress_action() -> Result<Action, Error> {
     commands::run_silent("stty -F /dev/tty cbreak min 1")?;
     let mut buffer: [u8; 3] = [0; 3];
     io::stdin().read(&mut buffer)?;
@@ -321,19 +330,22 @@ fn get_keypress_motion() -> Result<Motion, Error> {
         [10, _, _] => {
             ansi::cursor::previous_line();
             flush_stdout()?;
-            return Ok(Motion::SUBMIT);
+            return Ok(Action::Submit);
         } // enter
-        [27, 0, 0] => return Ok(Motion::EXIT),    // escape
-        [113, _, _] => return Ok(Motion::EXIT),   // q
-        [27, 91, 65] => return Ok(Motion::UP),    // up arrow
-        [27, 91, 66] => return Ok(Motion::DOWN),  // down arrow
-        [27, 91, 68] => return Ok(Motion::LEFT),  // left arrow
-        [27, 91, 67] => return Ok(Motion::RIGHT), // right arrow
-        [108, _, _] => return Ok(Motion::RIGHT),  // l
-        [107, _, _] => return Ok(Motion::UP),     // k
-        [106, _, _] => return Ok(Motion::DOWN),   // j
-        [104, _, _] => return Ok(Motion::LEFT),   // h
-        [32, _, _] => return Ok(Motion::SELECT),  // space
-        _ => return Ok(Motion::NONE),
+        [27, 91, 65] => return Ok(Action::Up),      // up arrow
+        [27, 91, 66] => return Ok(Action::Down),    // down arrow
+        [27, 91, 68] => return Ok(Action::Left),    // left arrow
+        [27, 91, 67] => return Ok(Action::Right),   // right arrow
+        [107, _, _] => return Ok(Action::Up),       // k
+        [106, _, _] => return Ok(Action::Down),     // j
+        [104, _, _] => return Ok(Action::Left),     // h
+        [108, _, _] => return Ok(Action::Right),    // l
+        [27, 91, 90] => return Ok(Action::Up),      // shift tab
+        [9, _, _] => return Ok(Action::Down),       // tab
+        [32, _, _] => return Ok(Action::Select),    // space
+        [97, _, _] => return Ok(Action::SelectAll), // a
+        [27, 0, 0] => return Ok(Action::Exit),      // escape
+        [113, _, _] => return Ok(Action::Exit),     // q
+        _ => return Ok(Action::None),
     }
 }
