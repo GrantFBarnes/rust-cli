@@ -9,6 +9,8 @@ enum Motion {
     SUBMIT,
     UP,
     DOWN,
+    LEFT,
+    RIGHT,
     SELECT,
     EXIT,
     NONE,
@@ -95,6 +97,32 @@ fn get_select_indexes(
                 current_index += 1;
                 if current_index >= options.len() {
                     current_index = 0;
+                }
+            }
+            Motion::LEFT => {
+                if options.len() <= ROWS_PER_PAGE {
+                    continue;
+                }
+
+                let max_page: usize = options.len() / ROWS_PER_PAGE;
+                let current_page: usize = current_index / ROWS_PER_PAGE;
+                if current_page == 0 {
+                    current_index = max_page * ROWS_PER_PAGE;
+                } else {
+                    current_index = (current_page - 1) * ROWS_PER_PAGE;
+                }
+            }
+            Motion::RIGHT => {
+                if options.len() <= ROWS_PER_PAGE {
+                    continue;
+                }
+
+                let max_page: usize = options.len() / ROWS_PER_PAGE;
+                let current_page: usize = current_index / ROWS_PER_PAGE;
+                if current_page == max_page {
+                    current_index = 0;
+                } else {
+                    current_index = (current_page + 1) * ROWS_PER_PAGE;
                 }
             }
             Motion::SELECT => selected_indexes[current_index] = !selected_indexes[current_index],
@@ -190,13 +218,17 @@ fn get_keypress_motion() -> Result<Motion, Error> {
             flush_stdout()?;
             return Ok(Motion::SUBMIT);
         } // enter
-        [27, 0, 0] => return Ok(Motion::EXIT),   // escape
-        [113, _, _] => return Ok(Motion::EXIT),  // q
-        [27, 91, 65] => return Ok(Motion::UP),   // up arrow
-        [27, 91, 66] => return Ok(Motion::DOWN), // down arrow
-        [107, _, _] => return Ok(Motion::UP),    // k
-        [106, _, _] => return Ok(Motion::DOWN),  // j
-        [32, _, _] => return Ok(Motion::SELECT), // space
+        [27, 0, 0] => return Ok(Motion::EXIT),    // escape
+        [113, _, _] => return Ok(Motion::EXIT),   // q
+        [27, 91, 65] => return Ok(Motion::UP),    // up arrow
+        [27, 91, 66] => return Ok(Motion::DOWN),  // down arrow
+        [27, 91, 68] => return Ok(Motion::LEFT),  // left arrow
+        [27, 91, 67] => return Ok(Motion::RIGHT), // right arrow
+        [108, _, _] => return Ok(Motion::RIGHT),  // l
+        [107, _, _] => return Ok(Motion::UP),     // k
+        [106, _, _] => return Ok(Motion::DOWN),   // j
+        [104, _, _] => return Ok(Motion::LEFT),   // h
+        [32, _, _] => return Ok(Motion::SELECT),  // space
         _ => return Ok(Motion::NONE),
     }
 }
