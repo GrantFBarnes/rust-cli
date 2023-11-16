@@ -18,13 +18,13 @@ enum Motion {
 
 const ROWS_PER_PAGE: usize = 10;
 
-pub fn select(title: &str, options: Vec<String>, details: Vec<String>) -> Result<String, Error> {
-    let indexes: Vec<usize> = get_select_indexes(title, &options, &details, false)?;
-    if indexes.len() != 1 {
-        return Err(Error::new(ErrorKind::InvalidInput, "selection invalid"));
-    }
-
-    let result: Option<&String> = options.get(indexes[0]);
+pub fn select_value(
+    title: &str,
+    options: &Vec<String>,
+    details: &Vec<String>,
+) -> Result<String, Error> {
+    let index: usize = select_index(title, options, details)?;
+    let result: Option<&String> = options.get(index);
     if result.is_none() {
         return Err(Error::new(ErrorKind::InvalidInput, "index invalid"));
     }
@@ -32,12 +32,24 @@ pub fn select(title: &str, options: Vec<String>, details: Vec<String>) -> Result
     Ok(result.unwrap().to_string())
 }
 
-pub fn mutli_select(
+pub fn select_index(
     title: &str,
-    options: Vec<String>,
-    details: Vec<String>,
+    options: &Vec<String>,
+    details: &Vec<String>,
+) -> Result<usize, Error> {
+    let indexes: Vec<usize> = get_select_indexes(title, &options, &details, false)?;
+    if indexes.len() != 1 {
+        return Err(Error::new(ErrorKind::InvalidInput, "selection invalid"));
+    }
+    Ok(indexes[0])
+}
+
+pub fn mutli_select_values(
+    title: &str,
+    options: &Vec<String>,
+    details: &Vec<String>,
 ) -> Result<Vec<String>, Error> {
-    let indexes: Vec<usize> = get_select_indexes(title, &options, &details, true)?;
+    let indexes: Vec<usize> = mutli_select_indexes(title, &options, &details)?;
 
     let mut result: Vec<String> = vec![];
     for i in indexes {
@@ -49,6 +61,14 @@ pub fn mutli_select(
     }
 
     Ok(result)
+}
+
+pub fn mutli_select_indexes(
+    title: &str,
+    options: &Vec<String>,
+    details: &Vec<String>,
+) -> Result<Vec<usize>, Error> {
+    get_select_indexes(title, &options, &details, true)
 }
 
 fn get_select_indexes(
