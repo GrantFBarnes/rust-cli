@@ -3,21 +3,22 @@ use rust_cli::prompts;
 fn main() {
     let result = test_prompt();
     if result.is_err() {
-        panic!("test_prompt failed");
+        dbg!(result.err().unwrap());
     }
 
     let result = test_select();
     if result.is_err() {
-        panic!("test_select failed");
+        dbg!(result.err().unwrap());
     }
 }
 
 fn test_prompt() -> Result<(), std::io::Error> {
-    println!("---------- prompt::text ----------");
-    dbg!(prompts::prompt::text("Text:")?);
+    println!("---------- prompt::prompt ----------");
+    let prompt = prompts::prompt::Prompt::new().message("Prompt:");
+    dbg!(prompt.prompt()?);
 
-    println!("---------- prompt::secret ----------");
-    dbg!(prompts::prompt::secret("Secret:")?);
+    let prompt = prompt.secret(true).confirm(true).required(true);
+    dbg!(prompt.prompt()?);
 
     return Ok(());
 }
