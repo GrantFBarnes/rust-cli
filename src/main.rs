@@ -26,13 +26,6 @@ fn main() {
             "three".to_string(),
             "four".to_string(),
             "five".to_string(),
-            "six".to_string(),
-            "seven".to_string(),
-            "eight".to_string(),
-            "nine".to_string(),
-            "ten".to_string(),
-            "eleven".to_string(),
-            "twelve".to_string(),
         ],
         &vec![
             "first".to_string(),
@@ -40,7 +33,7 @@ fn main() {
             "third".to_string(),
             "fourth".to_string(),
         ],
-        Some(5),
+        Some(15),
     );
     if result.is_ok() {
         dbg!(result.unwrap());

@@ -105,6 +105,11 @@ fn get_select_indexes(
     for _ in 0..cmp::min(options.len(), rows) {
         println!();
     }
+    let max_page: usize = (options.len() - 1) / rows;
+    if max_page > 0 {
+        println!();
+    }
+
     print_options(
         &options,
         &details,
@@ -136,7 +141,6 @@ fn get_select_indexes(
                     continue;
                 }
 
-                let max_page: usize = (options.len() - 1) / rows;
                 let current_page: usize = current_index / rows;
                 if current_page == 0 {
                     current_index = max_page * rows;
@@ -149,7 +153,6 @@ fn get_select_indexes(
                     continue;
                 }
 
-                let max_page: usize = (options.len() - 1) / rows;
                 let current_page: usize = current_index / rows;
                 if current_page == max_page {
                     current_index = 0;
@@ -199,6 +202,11 @@ fn print_options(
         ansi::cursor::previous_line();
         ansi::erase::line();
     }
+    let max_page: usize = (options.len() - 1) / rows;
+    if max_page > 0 {
+        ansi::cursor::previous_line();
+        ansi::erase::line();
+    }
 
     let skip: usize = (current_index / rows) * rows;
     for i in 0..rows {
@@ -239,6 +247,15 @@ fn print_options(
         }
         ansi::font::reset();
         println!();
+    }
+
+    if max_page > 0 {
+        ansi::font::text_color(ansi::font::Color::WHITE);
+        ansi::font::faint(true);
+        ansi::font::italic(true);
+        let current_page: usize = current_index / rows;
+        println!("Page [{}/{}]", current_page + 1, max_page + 1);
+        ansi::font::reset();
     }
 }
 
