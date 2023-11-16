@@ -1,4 +1,4 @@
-use std::io::{self, Error, ErrorKind, Read};
+use std::io::{self, Error, Read};
 
 use crate::{ansi, commands};
 
@@ -43,7 +43,7 @@ fn get_keypress_char() -> Result<char, Error> {
 
     let result: Option<char> = char::from_u32(buffer[0] as u32);
     if result.is_none() {
-        return Err(Error::new(ErrorKind::Other, "failed to convert u8 to char"));
+        return Err(Error::other("failed to convert u8 to char"));
     }
 
     Ok(result.unwrap())

@@ -1,5 +1,5 @@
 use std::cmp;
-use std::io::{self, Error, ErrorKind, Read};
+use std::io::{self, Error, Read};
 
 use crate::{ansi, commands};
 
@@ -106,21 +106,18 @@ impl Select {
         let index: usize = self.prompt_for_index()?;
         let result: Option<&String> = self.options.get(index);
         if result.is_none() {
-            return Err(Error::new(ErrorKind::Other, "index invalid"));
+            return Err(Error::other("index invalid"));
         }
         Ok(result.unwrap().to_string())
     }
 
     pub fn prompt_for_index(&self) -> Result<usize, Error> {
         if self.allow_multi_select {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "cannot be called on multi select",
-            ));
+            return Err(Error::other("cannot be called on multi select"));
         }
         let indexes: Vec<usize> = self.prompt()?;
         if indexes.len() != 1 {
-            return Err(Error::new(ErrorKind::Other, "selection invalid"));
+            return Err(Error::other("selection invalid"));
         }
         Ok(indexes[0])
     }
@@ -142,10 +139,7 @@ impl Select {
 
     pub fn prompt_for_indexes(&self) -> Result<Vec<usize>, Error> {
         if !self.allow_multi_select {
-            return Err(Error::new(
-                ErrorKind::Other,
-                "cannot be called on single select",
-            ));
+            return Err(Error::other("cannot be called on single select"));
         }
         self.prompt()
     }
@@ -155,7 +149,7 @@ impl Select {
 
     fn prompt(&self) -> Result<Vec<usize>, Error> {
         if self.options.len() == 0 {
-            return Err(Error::new(ErrorKind::InvalidInput, "no options provided"));
+            return Err(Error::other("no options provided"));
         }
 
         if self.title.is_some() {
@@ -233,7 +227,7 @@ impl Select {
                         }
                     }
                 }
-                Action::Exit => return Err(Error::new(ErrorKind::Other, "no selection made")),
+                Action::Exit => return Err(Error::other("no selection made")),
                 Action::None => continue,
             }
 
