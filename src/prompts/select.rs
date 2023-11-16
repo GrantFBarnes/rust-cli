@@ -16,246 +16,294 @@ enum Motion {
     NONE,
 }
 
-pub fn select_value(
-    title: &str,
-    options: &Vec<String>,
-    details: &Vec<String>,
-    rows: Option<usize>,
-) -> Result<String, Error> {
-    let index: usize = select_index(title, options, details, rows)?;
-    let result: Option<&String> = options.get(index);
-    if result.is_none() {
-        return Err(Error::new(ErrorKind::InvalidInput, "index invalid"));
-    }
+pub struct Select {
+    // input parameters
+    title: Option<String>,
+    options: Vec<String>,
+    details: Vec<String>,
+    max_rows_per_page: usize,
+    allow_multi_select: bool,
 
-    Ok(result.unwrap().to_string())
+    // calculated parameters
+    rows_per_page: usize,
+    last_page_index: usize,
 }
 
-pub fn select_index(
-    title: &str,
-    options: &Vec<String>,
-    details: &Vec<String>,
-    rows: Option<usize>,
-) -> Result<usize, Error> {
-    let indexes: Vec<usize> = get_select_indexes(title, &options, &details, rows, false)?;
-    if indexes.len() != 1 {
-        return Err(Error::new(ErrorKind::InvalidInput, "selection invalid"));
-    }
-    Ok(indexes[0])
-}
+impl Select {
+    pub fn new() -> Self {
+        Self {
+            title: None,
+            options: vec![],
+            details: vec![],
+            max_rows_per_page: 15,
+            allow_multi_select: false,
 
-pub fn mutli_select_values(
-    title: &str,
-    options: &Vec<String>,
-    details: &Vec<String>,
-    rows: Option<usize>,
-) -> Result<Vec<String>, Error> {
-    let indexes: Vec<usize> = mutli_select_indexes(title, &options, &details, rows)?;
-
-    let mut result: Vec<String> = vec![];
-    for i in indexes {
-        let option: Option<&String> = options.get(i);
-        if option.is_none() {
-            continue;
+            rows_per_page: 0,
+            last_page_index: 0,
         }
-        result.push(option.unwrap().to_string());
     }
 
-    Ok(result)
-}
+    ////////////////////////////////////////////////////////////////////////////
+    /// input parameter set methods
 
-pub fn mutli_select_indexes(
-    title: &str,
-    options: &Vec<String>,
-    details: &Vec<String>,
-    rows: Option<usize>,
-) -> Result<Vec<usize>, Error> {
-    get_select_indexes(title, &options, &details, rows, true)
-}
-
-fn get_select_indexes(
-    title: &str,
-    options: &Vec<String>,
-    details: &Vec<String>,
-    rows: Option<usize>,
-    multi: bool,
-) -> Result<Vec<usize>, Error> {
-    if options.len() == 0 {
-        return Err(Error::new(ErrorKind::InvalidInput, "no options provided"));
+    pub fn title<S: Into<String>>(mut self, title: S) -> Self {
+        self.title = Some(title.into());
+        self
     }
 
-    if title.len() > 0 {
-        ansi::font::bold(true);
-        ansi::font::underline(true);
-        println!("{}", title);
-        ansi::font::reset();
+    pub fn options<T: ToString>(mut self, options: &[T]) -> Self {
+        for option in options {
+            self.options.push(option.to_string());
+        }
+        self.rows_per_page()
     }
 
-    let mut selected_indexes: Vec<bool> = vec![];
-    for _ in 0..options.len() {
-        selected_indexes.push(false);
+    pub fn option<T: ToString>(mut self, option: T) -> Self {
+        self.options.push(option.to_string());
+        self.rows_per_page()
     }
 
-    let mut current_index: usize = 0;
-    if !multi {
-        selected_indexes[0] = true;
+    pub fn details<T: ToString>(mut self, details: &[T]) -> Self {
+        for detail in details {
+            self.details.push(detail.to_string());
+        }
+        self
     }
 
-    let rows: usize = rows.unwrap_or(10);
-    for _ in 0..cmp::min(options.len(), rows) {
-        println!();
-    }
-    let max_page: usize = (options.len() - 1) / rows;
-    if max_page > 0 {
-        println!();
+    pub fn detail<T: ToString>(mut self, detail: T) -> Self {
+        self.details.push(detail.to_string());
+        self
     }
 
-    print_options(
-        &options,
-        &details,
-        current_index,
-        &selected_indexes,
-        rows,
-        multi,
-    );
+    pub fn max_rows_per_page(mut self, val: usize) -> Self {
+        self.max_rows_per_page = val;
+        self.rows_per_page()
+    }
 
-    loop {
-        let motion: Motion = get_keypress_motion()?;
-        match motion {
-            Motion::SUBMIT => break,
-            Motion::UP => {
-                if current_index == 0 {
-                    current_index = options.len() - 1;
-                } else {
-                    current_index -= 1
-                }
+    pub fn allow_multi_select(mut self, val: bool) -> Self {
+        self.allow_multi_select = val;
+        self
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// calculated parameter set methods
+
+    fn rows_per_page(mut self) -> Self {
+        self.rows_per_page = cmp::min(self.options.len(), self.max_rows_per_page);
+        self.last_page_index()
+    }
+
+    fn last_page_index(mut self) -> Self {
+        self.last_page_index = (self.options.len() - 1) / self.rows_per_page;
+        self
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// run methods
+
+    pub fn prompt_for_value(&self) -> Result<String, Error> {
+        let index: usize = self.prompt_for_index()?;
+        let result: Option<&String> = self.options.get(index);
+        if result.is_none() {
+            return Err(Error::new(ErrorKind::Other, "index invalid"));
+        }
+        Ok(result.unwrap().to_string())
+    }
+
+    pub fn prompt_for_index(&self) -> Result<usize, Error> {
+        if self.allow_multi_select {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "cannot be called on multi select",
+            ));
+        }
+        let indexes: Vec<usize> = self.prompt()?;
+        if indexes.len() != 1 {
+            return Err(Error::new(ErrorKind::Other, "selection invalid"));
+        }
+        Ok(indexes[0])
+    }
+
+    pub fn prompt_for_values(&self) -> Result<Vec<String>, Error> {
+        let indexes: Vec<usize> = self.prompt_for_indexes()?;
+
+        let mut result: Vec<String> = vec![];
+        for i in indexes {
+            let option: Option<&String> = self.options.get(i);
+            if option.is_none() {
+                continue;
             }
-            Motion::DOWN => {
-                current_index += 1;
-                if current_index >= options.len() {
-                    current_index = 0;
-                }
-            }
-            Motion::LEFT => {
-                if options.len() <= rows {
-                    continue;
-                }
-
-                let current_page: usize = current_index / rows;
-                if current_page == 0 {
-                    current_index = max_page * rows;
-                } else {
-                    current_index = (current_page - 1) * rows;
-                }
-            }
-            Motion::RIGHT => {
-                if options.len() <= rows {
-                    continue;
-                }
-
-                let current_page: usize = current_index / rows;
-                if current_page == max_page {
-                    current_index = 0;
-                } else {
-                    current_index = (current_page + 1) * rows;
-                }
-            }
-            Motion::SELECT => selected_indexes[current_index] = !selected_indexes[current_index],
-            Motion::EXIT => return Err(Error::new(ErrorKind::InvalidInput, "no selection made")),
-            Motion::NONE => continue,
+            result.push(option.unwrap().to_string());
         }
 
-        print_options(
-            &options,
-            &details,
-            current_index,
-            &selected_indexes,
-            rows,
-            multi,
-        );
+        Ok(result)
     }
 
-    let mut result: Vec<usize> = vec![];
-    if multi {
-        for i in 0..selected_indexes.len() {
-            if selected_indexes[i] {
-                result.push(i);
-            }
+    pub fn prompt_for_indexes(&self) -> Result<Vec<usize>, Error> {
+        if !self.allow_multi_select {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "cannot be called on single select",
+            ));
         }
-    } else {
-        result.push(current_index);
+        self.prompt()
     }
 
-    Ok(result)
-}
+    ////////////////////////////////////////////////////////////////////////////
+    /// common run methods
 
-fn print_options(
-    options: &Vec<String>,
-    details: &Vec<String>,
-    current_index: usize,
-    selected_indexes: &Vec<bool>,
-    rows: usize,
-    multi: bool,
-) {
-    let rows: usize = cmp::min(options.len(), rows);
-    for _ in 0..rows {
-        ansi::cursor::previous_line();
-        ansi::erase::line();
-    }
-    let max_page: usize = (options.len() - 1) / rows;
-    if max_page > 0 {
-        ansi::cursor::previous_line();
-        ansi::erase::line();
-    }
+    fn prompt(&self) -> Result<Vec<usize>, Error> {
+        if self.options.len() == 0 {
+            return Err(Error::new(ErrorKind::InvalidInput, "no options provided"));
+        }
 
-    let skip: usize = (current_index / rows) * rows;
-    for i in 0..rows {
-        let idx: usize = i + skip;
-        if options.len() <= idx {
+        if self.title.is_some() {
+            ansi::font::bold(true);
+            ansi::font::underline(true);
+            println!("{}", self.title.clone().unwrap());
+            ansi::font::reset();
+        }
+
+        let mut current_index: usize = 0;
+        let mut selected_indexes: Vec<bool> = vec![];
+        for _ in 0..self.options.len() {
+            selected_indexes.push(false);
+        }
+
+        for _ in 0..self.rows_per_page {
             println!();
-            continue;
+        }
+        if self.last_page_index > 0 {
+            println!();
         }
 
-        if multi {
-            if selected_indexes[idx] {
-                ansi::font::text_color(ansi::font::Color::GREEN);
-                print!(" [X] ");
-                ansi::font::reset();
-            } else {
-                print!(" [ ] ");
+        self.print_options(current_index, &selected_indexes);
+
+        loop {
+            match get_keypress_motion()? {
+                Motion::SUBMIT => break,
+                Motion::UP => {
+                    if current_index == 0 {
+                        current_index = self.options.len() - 1;
+                    } else {
+                        current_index -= 1
+                    }
+                }
+                Motion::DOWN => {
+                    current_index += 1;
+                    if current_index >= self.options.len() {
+                        current_index = 0;
+                    }
+                }
+                Motion::LEFT => {
+                    if self.last_page_index == 0 {
+                        continue;
+                    }
+
+                    let current_page: usize = current_index / self.rows_per_page;
+                    if current_page == 0 {
+                        current_index = self.last_page_index * self.rows_per_page;
+                    } else {
+                        current_index = (current_page - 1) * self.rows_per_page;
+                    }
+                }
+                Motion::RIGHT => {
+                    if self.last_page_index == 0 {
+                        continue;
+                    }
+
+                    let current_page: usize = current_index / self.rows_per_page;
+                    if current_page == self.last_page_index {
+                        current_index = 0;
+                    } else {
+                        current_index = (current_page + 1) * self.rows_per_page;
+                    }
+                }
+                Motion::SELECT => {
+                    if self.allow_multi_select {
+                        selected_indexes[current_index] = !selected_indexes[current_index]
+                    }
+                }
+                Motion::EXIT => return Err(Error::new(ErrorKind::Other, "no selection made")),
+                Motion::NONE => continue,
+            }
+
+            self.print_options(current_index, &selected_indexes);
+        }
+
+        let mut result: Vec<usize> = vec![];
+        if self.allow_multi_select {
+            for i in 0..selected_indexes.len() {
+                if selected_indexes[i] {
+                    result.push(i);
+                }
             }
         } else {
-            if idx == current_index {
-                print!(" > ");
-            } else {
-                print!("   ");
-            }
+            result.push(current_index);
         }
 
-        if idx == current_index {
-            ansi::font::bold(true);
-            ansi::font::text_color(ansi::font::Color::CYAN);
-        }
-
-        print!("{}", options[idx]);
-
-        if details.len() > idx {
-            if details[idx].len() > 0 {
-                ansi::font::faint(true);
-                print!(" - {}", details[idx]);
-            }
-        }
-        ansi::font::reset();
-        println!();
+        Ok(result)
     }
 
-    if max_page > 0 {
-        ansi::font::text_color(ansi::font::Color::WHITE);
-        ansi::font::faint(true);
-        ansi::font::italic(true);
-        let current_page: usize = current_index / rows;
-        println!("Page [{}/{}]", current_page + 1, max_page + 1);
-        ansi::font::reset();
+    fn print_options(&self, current_index: usize, selected_indexes: &Vec<bool>) {
+        for _ in 0..self.rows_per_page {
+            ansi::cursor::previous_line();
+            ansi::erase::line();
+        }
+        if self.last_page_index > 0 {
+            ansi::cursor::previous_line();
+            ansi::erase::line();
+        }
+
+        let skip: usize = (current_index / self.rows_per_page) * self.rows_per_page;
+        for i in 0..self.rows_per_page {
+            let idx: usize = i + skip;
+            if self.options.len() <= idx {
+                println!();
+                continue;
+            }
+
+            if self.allow_multi_select {
+                if selected_indexes[idx] {
+                    ansi::font::text_color(ansi::font::Color::GREEN);
+                    print!(" [X] ");
+                    ansi::font::reset();
+                } else {
+                    print!(" [ ] ");
+                }
+            } else {
+                if idx == current_index {
+                    print!(" > ");
+                } else {
+                    print!("   ");
+                }
+            }
+
+            if idx == current_index {
+                ansi::font::bold(true);
+                ansi::font::text_color(ansi::font::Color::CYAN);
+            }
+
+            print!("{}", self.options[idx]);
+
+            if self.details.len() > idx {
+                if self.details[idx].len() > 0 {
+                    ansi::font::faint(true);
+                    print!(" - {}", self.details[idx]);
+                }
+            }
+            ansi::font::reset();
+            println!();
+        }
+
+        if self.last_page_index > 0 {
+            ansi::font::text_color(ansi::font::Color::WHITE);
+            ansi::font::faint(true);
+            ansi::font::italic(true);
+            let current_page: usize = current_index / self.rows_per_page;
+            println!("Page [{}/{}]", current_page + 1, self.last_page_index + 1);
+            ansi::font::reset();
+        }
     }
 }
 
