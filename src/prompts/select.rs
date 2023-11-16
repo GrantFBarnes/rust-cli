@@ -16,14 +16,13 @@ enum Motion {
     NONE,
 }
 
-const ROWS_PER_PAGE: usize = 10;
-
 pub fn select_value(
     title: &str,
     options: &Vec<String>,
     details: &Vec<String>,
+    rows: Option<usize>,
 ) -> Result<String, Error> {
-    let index: usize = select_index(title, options, details)?;
+    let index: usize = select_index(title, options, details, rows)?;
     let result: Option<&String> = options.get(index);
     if result.is_none() {
         return Err(Error::new(ErrorKind::InvalidInput, "index invalid"));
@@ -36,8 +35,9 @@ pub fn select_index(
     title: &str,
     options: &Vec<String>,
     details: &Vec<String>,
+    rows: Option<usize>,
 ) -> Result<usize, Error> {
-    let indexes: Vec<usize> = get_select_indexes(title, &options, &details, false)?;
+    let indexes: Vec<usize> = get_select_indexes(title, &options, &details, rows, false)?;
     if indexes.len() != 1 {
         return Err(Error::new(ErrorKind::InvalidInput, "selection invalid"));
     }
@@ -48,8 +48,9 @@ pub fn mutli_select_values(
     title: &str,
     options: &Vec<String>,
     details: &Vec<String>,
+    rows: Option<usize>,
 ) -> Result<Vec<String>, Error> {
-    let indexes: Vec<usize> = mutli_select_indexes(title, &options, &details)?;
+    let indexes: Vec<usize> = mutli_select_indexes(title, &options, &details, rows)?;
 
     let mut result: Vec<String> = vec![];
     for i in indexes {
@@ -67,14 +68,16 @@ pub fn mutli_select_indexes(
     title: &str,
     options: &Vec<String>,
     details: &Vec<String>,
+    rows: Option<usize>,
 ) -> Result<Vec<usize>, Error> {
-    get_select_indexes(title, &options, &details, true)
+    get_select_indexes(title, &options, &details, rows, true)
 }
 
 fn get_select_indexes(
     title: &str,
     options: &Vec<String>,
     details: &Vec<String>,
+    rows: Option<usize>,
     multi: bool,
 ) -> Result<Vec<usize>, Error> {
     if options.len() == 0 {
@@ -97,10 +100,19 @@ fn get_select_indexes(
     if !multi {
         selected_indexes[0] = true;
     }
-    for _ in 0..cmp::min(options.len(), ROWS_PER_PAGE) {
+
+    let rows: usize = rows.unwrap_or(10);
+    for _ in 0..cmp::min(options.len(), rows) {
         println!();
     }
-    print_options(&options, &details, current_index, &selected_indexes, multi);
+    print_options(
+        &options,
+        &details,
+        current_index,
+        &selected_indexes,
+        rows,
+        multi,
+    );
 
     loop {
         let motion: Motion = get_keypress_motion()?;
@@ -120,29 +132,29 @@ fn get_select_indexes(
                 }
             }
             Motion::LEFT => {
-                if options.len() <= ROWS_PER_PAGE {
+                if options.len() <= rows {
                     continue;
                 }
 
-                let max_page: usize = options.len() / ROWS_PER_PAGE;
-                let current_page: usize = current_index / ROWS_PER_PAGE;
+                let max_page: usize = (options.len() - 1) / rows;
+                let current_page: usize = current_index / rows;
                 if current_page == 0 {
-                    current_index = max_page * ROWS_PER_PAGE;
+                    current_index = max_page * rows;
                 } else {
-                    current_index = (current_page - 1) * ROWS_PER_PAGE;
+                    current_index = (current_page - 1) * rows;
                 }
             }
             Motion::RIGHT => {
-                if options.len() <= ROWS_PER_PAGE {
+                if options.len() <= rows {
                     continue;
                 }
 
-                let max_page: usize = options.len() / ROWS_PER_PAGE;
-                let current_page: usize = current_index / ROWS_PER_PAGE;
+                let max_page: usize = (options.len() - 1) / rows;
+                let current_page: usize = current_index / rows;
                 if current_page == max_page {
                     current_index = 0;
                 } else {
-                    current_index = (current_page + 1) * ROWS_PER_PAGE;
+                    current_index = (current_page + 1) * rows;
                 }
             }
             Motion::SELECT => selected_indexes[current_index] = !selected_indexes[current_index],
@@ -150,7 +162,14 @@ fn get_select_indexes(
             Motion::NONE => continue,
         }
 
-        print_options(&options, &details, current_index, &selected_indexes, multi);
+        print_options(
+            &options,
+            &details,
+            current_index,
+            &selected_indexes,
+            rows,
+            multi,
+        );
     }
 
     let mut result: Vec<usize> = vec![];
@@ -172,15 +191,16 @@ fn print_options(
     details: &Vec<String>,
     current_index: usize,
     selected_indexes: &Vec<bool>,
+    rows: usize,
     multi: bool,
 ) {
-    let rows: usize = cmp::min(options.len(), ROWS_PER_PAGE);
+    let rows: usize = cmp::min(options.len(), rows);
     for _ in 0..rows {
         ansi::cursor::previous_line();
         ansi::erase::line();
     }
 
-    let skip: usize = (current_index / ROWS_PER_PAGE) * ROWS_PER_PAGE;
+    let skip: usize = (current_index / rows) * rows;
     for i in 0..rows {
         let idx: usize = i + skip;
         if options.len() <= idx {

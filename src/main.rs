@@ -40,6 +40,7 @@ fn main() {
             "third".to_string(),
             "fourth".to_string(),
         ],
+        Some(5),
     );
     if result.is_ok() {
         dbg!(result.unwrap());
@@ -70,6 +71,7 @@ fn main() {
             "third".to_string(),
             "fourth".to_string(),
         ],
+        Some(6),
     );
     if result.is_ok() {
         dbg!(result.unwrap());
@@ -100,6 +102,7 @@ fn main() {
             "third".to_string(),
             "fourth".to_string(),
         ],
+        Some(8),
     );
     if result.is_ok() {
         dbg!(result.unwrap());
@@ -130,6 +133,7 @@ fn main() {
             "third".to_string(),
             "fourth".to_string(),
         ],
+        Some(10),
     );
     if result.is_ok() {
         dbg!(result.unwrap());
