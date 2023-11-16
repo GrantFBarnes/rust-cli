@@ -1,3 +1,4 @@
+use std::cmp;
 use std::io::{self, Error, ErrorKind, Read};
 
 use crate::{ansi, commands};
@@ -12,6 +13,8 @@ enum Motion {
     EXIT,
     NONE,
 }
+
+const ROWS_PER_PAGE: usize = 10;
 
 pub fn select(title: &str, options: Vec<String>, details: Vec<String>) -> Result<String, Error> {
     let indexes: Vec<usize> = get_select_indexes(title, &options, &details, false)?;
@@ -66,12 +69,14 @@ fn get_select_indexes(
     let mut selected_indexes: Vec<bool> = vec![];
     for _ in 0..options.len() {
         selected_indexes.push(false);
-        println!();
     }
 
     let mut current_index: usize = 0;
     if !multi {
         selected_indexes[0] = true;
+    }
+    for _ in 0..cmp::min(options.len(), ROWS_PER_PAGE) {
+        println!();
     }
     print_options(&options, &details, current_index, &selected_indexes, multi);
 
@@ -121,10 +126,22 @@ fn print_options(
     selected_indexes: &Vec<bool>,
     multi: bool,
 ) {
-    ansi::cursor::previous_lines(options.len());
-    for i in 0..options.len() {
+    let rows: usize = cmp::min(options.len(), ROWS_PER_PAGE);
+    for _ in 0..rows {
+        ansi::cursor::previous_line();
+        ansi::erase::line();
+    }
+
+    let skip: usize = (current_index / ROWS_PER_PAGE) * ROWS_PER_PAGE;
+    for i in 0..rows {
+        let idx: usize = i + skip;
+        if options.len() <= idx {
+            println!();
+            continue;
+        }
+
         if multi {
-            if selected_indexes[i] {
+            if selected_indexes[idx] {
                 ansi::font::text_color(ansi::font::Color::GREEN);
                 print!(" [X] ");
                 ansi::font::reset();
@@ -132,24 +149,24 @@ fn print_options(
                 print!(" [ ] ");
             }
         } else {
-            if i == current_index {
+            if idx == current_index {
                 print!(" > ");
             } else {
                 print!("   ");
             }
         }
 
-        if i == current_index {
+        if idx == current_index {
             ansi::font::bold(true);
             ansi::font::text_color(ansi::font::Color::CYAN);
         }
 
-        print!("{}", options[i]);
+        print!("{}", options[idx]);
 
-        if details.len() > i {
-            if details[i].len() > 0 {
+        if details.len() > idx {
+            if details[idx].len() > 0 {
                 ansi::font::faint(true);
-                print!(" - {}", details[i]);
+                print!(" - {}", details[idx]);
             }
         }
         ansi::font::reset();
