@@ -430,10 +430,14 @@ impl Select {
 }
 
 fn get_keypress_action() -> Result<Action, Error> {
-    commands::run_silent("stty -F /dev/tty cbreak min 1")?;
+    commands::Operation::new()
+        .command("stty -F /dev/tty cbreak min 1")
+        .run()?;
     let mut buffer: [u8; 3] = [0; 3];
     io::stdin().read(&mut buffer)?;
-    commands::run("stty -F /dev/tty sane")?;
+    commands::Operation::new()
+        .command("stty -F /dev/tty sane")
+        .run()?;
 
     ansi::cursor::line_start();
     ansi::erase::line();
