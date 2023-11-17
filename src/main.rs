@@ -56,7 +56,6 @@ fn test_select() -> Result<(), std::io::Error> {
     let select = select.max_rows_per_page(5);
     dbg!(select.prompt_for_index()?);
 
-    let select = select.allow_multi_select(true);
     dbg!(select.prompt_for_values()?);
 
     return Ok(());

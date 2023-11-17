@@ -167,7 +167,6 @@ pub struct Select {
     options: Vec<String>,
     details: Vec<String>,
     max_rows_per_page: usize,
-    allow_multi_select: bool,
 
     // calculated parameters
     rows_per_page: usize,
@@ -181,7 +180,6 @@ impl Select {
             options: vec![],
             details: vec![],
             max_rows_per_page: 15,
-            allow_multi_select: false,
 
             rows_per_page: 0,
             last_page_index: 0,
@@ -225,11 +223,6 @@ impl Select {
         self.rows_per_page()
     }
 
-    pub fn allow_multi_select(mut self, val: bool) -> Self {
-        self.allow_multi_select = val;
-        self
-    }
-
     ////////////////////////////////////////////////////////////////////////////
     /// calculated parameter set methods
 
@@ -256,10 +249,7 @@ impl Select {
     }
 
     pub fn prompt_for_index(&self) -> Result<usize, Error> {
-        if self.allow_multi_select {
-            return Err(Error::other("cannot be called on multi select"));
-        }
-        let indexes: Vec<usize> = self.prompt()?;
+        let indexes: Vec<usize> = self.prompt(false)?;
         if indexes.len() != 1 {
             return Err(Error::other("selection invalid"));
         }
@@ -282,16 +272,13 @@ impl Select {
     }
 
     pub fn prompt_for_indexes(&self) -> Result<Vec<usize>, Error> {
-        if !self.allow_multi_select {
-            return Err(Error::other("cannot be called on single select"));
-        }
-        self.prompt()
+        self.prompt(true)
     }
 
     ////////////////////////////////////////////////////////////////////////////
     /// common run methods
 
-    fn prompt(&self) -> Result<Vec<usize>, Error> {
+    fn prompt(&self, is_multi_select: bool) -> Result<Vec<usize>, Error> {
         if self.options.len() == 0 {
             return Err(Error::other("no options provided"));
         }
@@ -316,7 +303,7 @@ impl Select {
             println!();
         }
 
-        self.print_options(current_index, &selected_indexes);
+        self.print_options(current_index, &selected_indexes, is_multi_select);
 
         loop {
             match get_keypress_action()? {
@@ -359,12 +346,12 @@ impl Select {
                     }
                 }
                 Action::Select => {
-                    if self.allow_multi_select {
+                    if is_multi_select {
                         selected_indexes[current_index] = !selected_indexes[current_index]
                     }
                 }
                 Action::SelectAll => {
-                    if self.allow_multi_select {
+                    if is_multi_select {
                         let all_selected = selected_indexes.iter().all(|&x| x);
                         for i in 0..selected_indexes.len() {
                             selected_indexes[i] = !all_selected;
@@ -375,11 +362,11 @@ impl Select {
                 Action::None => continue,
             }
 
-            self.print_options(current_index, &selected_indexes);
+            self.print_options(current_index, &selected_indexes, is_multi_select);
         }
 
         let mut result: Vec<usize> = vec![];
-        if self.allow_multi_select {
+        if is_multi_select {
             for i in 0..selected_indexes.len() {
                 if selected_indexes[i] {
                     result.push(i);
@@ -392,7 +379,12 @@ impl Select {
         Ok(result)
     }
 
-    fn print_options(&self, current_index: usize, selected_indexes: &Vec<bool>) {
+    fn print_options(
+        &self,
+        current_index: usize,
+        selected_indexes: &Vec<bool>,
+        is_multi_select: bool,
+    ) {
         for _ in 0..self.rows_per_page {
             ansi::cursor::previous_line();
             ansi::erase::line();
@@ -410,7 +402,7 @@ impl Select {
                 continue;
             }
 
-            if self.allow_multi_select {
+            if is_multi_select {
                 if selected_indexes[idx] {
                     ansi::font::text_color(ansi::font::Color::GREEN);
                     print!(" [X] ");
