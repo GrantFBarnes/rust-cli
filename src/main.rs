@@ -1,6 +1,11 @@
-use rust_cli::prompts::{Select, Text};
+use rust_cli::prompts::*;
 
 fn main() {
+    let result = test_confirm();
+    if result.is_err() {
+        dbg!(result.err().unwrap());
+    }
+
     let result = test_prompt();
     if result.is_err() {
         dbg!(result.err().unwrap());
@@ -12,8 +17,19 @@ fn main() {
     }
 }
 
+fn test_confirm() -> Result<(), std::io::Error> {
+    println!("---------- confirm ----------");
+    let confirm = Confirm::new().message("Confirm");
+    dbg!(confirm.confirm()?);
+
+    let confirm = confirm.default_no(true);
+    dbg!(confirm.confirm()?);
+
+    return Ok(());
+}
+
 fn test_prompt() -> Result<(), std::io::Error> {
-    println!("---------- prompt::prompt ----------");
+    println!("---------- prompt ----------");
     let prompt = Text::new().message("Prompt:");
     dbg!(prompt.prompt()?);
 
@@ -24,7 +40,7 @@ fn test_prompt() -> Result<(), std::io::Error> {
 }
 
 fn test_select() -> Result<(), std::io::Error> {
-    println!("---------- select::select ----------");
+    println!("---------- select ----------");
     let select = Select::new()
         .title("Select Value")
         .options(&vec![

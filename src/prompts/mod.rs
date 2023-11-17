@@ -3,6 +3,64 @@ use std::io::{self, Error, Read, Write};
 
 use crate::{ansi, commands};
 
+pub struct Confirm {
+    message: String,
+    default_no: bool,
+}
+
+impl Confirm {
+    pub fn new() -> Self {
+        Self {
+            message: String::new(),
+            default_no: false,
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// input parameter set methods
+
+    pub fn message<S: Into<String>>(mut self, message: S) -> Self {
+        self.message = message.into();
+        self
+    }
+
+    pub fn default_no(mut self, val: bool) -> Self {
+        self.default_no = val;
+        self
+    }
+
+    ////////////////////////////////////////////////////////////////////////////
+    /// run methods
+
+    pub fn confirm(&self) -> Result<bool, Error> {
+        print!("{}", self.message);
+        if self.default_no {
+            print!("[y/N]");
+        } else {
+            print!("[Y/n]");
+        }
+        flush_stdout()?;
+
+        let mut input = String::new();
+        io::stdin().read_line(&mut input)?;
+        let input = input.to_lowercase();
+        let input = input.trim();
+
+        return match input {
+            "y" => Ok(true),
+            "n" => Ok(false),
+            "" => {
+                if self.default_no {
+                    Ok(false)
+                } else {
+                    Ok(true)
+                }
+            }
+            _ => Err(Error::other("input not valid")),
+        };
+    }
+}
+
 pub struct Text {
     message: String,
     confirm: bool,
