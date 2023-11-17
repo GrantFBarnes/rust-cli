@@ -151,6 +151,7 @@ pub struct Select {
     details: Vec<String>,
     default_index: usize,
     max_rows_per_page: usize,
+    erase_after: bool,
 
     // calculated parameters
     rows_per_page: usize,
@@ -165,6 +166,7 @@ impl Select {
             details: vec![],
             default_index: 0,
             max_rows_per_page: 15,
+            erase_after: false,
 
             rows_per_page: 0,
             last_page_index: 0,
@@ -211,6 +213,11 @@ impl Select {
     pub fn max_rows_per_page(mut self, val: usize) -> Self {
         self.max_rows_per_page = val;
         self.rows_per_page()
+    }
+
+    pub fn erase_after(mut self, val: bool) -> Self {
+        self.erase_after = val;
+        self
     }
 
     ////////////////////////////////////////////////////////////////////////////
@@ -357,6 +364,18 @@ impl Select {
             }
 
             self.print_options(current_index, &selected_indexes, is_multi_select);
+        }
+
+        if self.erase_after {
+            for _ in 0..self.rows_per_page + 2 {
+                ansi::cursor::previous_line();
+                ansi::erase::line();
+            }
+            if self.last_page_index > 0 {
+                ansi::cursor::previous_line();
+                ansi::erase::line();
+            }
+            flush_stdout()?;
         }
 
         let mut result: Vec<usize> = vec![];

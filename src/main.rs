@@ -48,6 +48,7 @@ fn test_select() -> Result<(), std::io::Error> {
         ])
         .option("eleven")
         .option("twelve")
+        .erase_after(true)
         .details(&vec!["first", "", "third", "fourth"]);
 
     let select = select.max_rows_per_page(10);
