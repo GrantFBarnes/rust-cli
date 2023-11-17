@@ -1,4 +1,4 @@
-use rust_cli::prompts;
+use rust_cli::prompts::{Select, Text};
 
 fn main() {
     let result = test_prompt();
@@ -14,7 +14,7 @@ fn main() {
 
 fn test_prompt() -> Result<(), std::io::Error> {
     println!("---------- prompt::prompt ----------");
-    let prompt = prompts::prompt::Prompt::new().message("Prompt:");
+    let prompt = Text::new().message("Prompt:");
     dbg!(prompt.prompt()?);
 
     let prompt = prompt.secret(true).confirm(true).required(true);
@@ -25,7 +25,7 @@ fn test_prompt() -> Result<(), std::io::Error> {
 
 fn test_select() -> Result<(), std::io::Error> {
     println!("---------- select::select ----------");
-    let select = prompts::select::Select::new()
+    let select = Select::new()
         .title("Select Value")
         .options(&vec![
             "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
