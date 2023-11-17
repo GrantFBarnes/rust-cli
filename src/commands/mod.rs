@@ -2,16 +2,16 @@ use std::io::Error;
 use std::process::{Command, Stdio};
 use std::string::FromUtf8Error;
 
-pub fn run(command: &str) -> Result<(), Error> {
-    run_command(command, true)
+pub fn run<S: Into<String>>(command: S) -> Result<(), Error> {
+    run_command(command.into(), true)
 }
 
-pub fn run_silent(command: &str) -> Result<(), Error> {
-    run_command(command, false)
+pub fn run_silent<S: Into<String>>(command: S) -> Result<(), Error> {
+    run_command(command.into(), false)
 }
 
-pub fn output(command: &str) -> Result<String, Error> {
-    let output: Vec<u8> = get_command(command)?.output()?.stdout;
+pub fn output<S: Into<String>>(command: S) -> Result<String, Error> {
+    let output: Vec<u8> = get_command(command.into())?.output()?.stdout;
     let output: Result<String, FromUtf8Error> = String::from_utf8(output);
     if output.is_err() {
         return Err(Error::other("failed to convert command output"));
@@ -20,7 +20,7 @@ pub fn output(command: &str) -> Result<String, Error> {
     Ok(output.unwrap())
 }
 
-fn run_command(command: &str, show_output: bool) -> Result<(), Error> {
+fn run_command(command: String, show_output: bool) -> Result<(), Error> {
     if show_output {
         get_command(command)?
             .stdout(Stdio::inherit())
@@ -37,7 +37,7 @@ fn run_command(command: &str, show_output: bool) -> Result<(), Error> {
     Ok(())
 }
 
-fn get_command(command: &str) -> Result<Command, Error> {
+fn get_command(command: String) -> Result<Command, Error> {
     if command.contains("|") || command.contains("<") || command.contains(">") {
         return Err(Error::other("cannot handle redirected output"));
     }
