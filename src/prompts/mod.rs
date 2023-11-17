@@ -149,6 +149,7 @@ pub struct Select {
     title: Option<String>,
     options: Vec<String>,
     details: Vec<String>,
+    default_index: usize,
     max_rows_per_page: usize,
 
     // calculated parameters
@@ -162,6 +163,7 @@ impl Select {
             title: None,
             options: vec![],
             details: vec![],
+            default_index: 0,
             max_rows_per_page: 15,
 
             rows_per_page: 0,
@@ -198,6 +200,11 @@ impl Select {
 
     pub fn detail<T: ToString>(mut self, detail: T) -> Self {
         self.details.push(detail.to_string());
+        self
+    }
+
+    pub fn default_index(mut self, val: usize) -> Self {
+        self.default_index = val;
         self
     }
 
@@ -266,6 +273,10 @@ impl Select {
             return Err(Error::other("no options provided"));
         }
 
+        if self.default_index >= self.options.len() {
+            return Err(Error::other("default index out of range"));
+        }
+
         if self.title.is_some() {
             ansi::font::bold(true);
             ansi::font::underline(true);
@@ -273,7 +284,7 @@ impl Select {
             ansi::font::reset();
         }
 
-        let mut current_index: usize = 0;
+        let mut current_index: usize = self.default_index;
         let mut selected_indexes: Vec<bool> = vec![];
         for _ in 0..self.options.len() {
             selected_indexes.push(false);
