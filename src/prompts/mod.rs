@@ -41,12 +41,7 @@ impl Confirm {
         }
         flush_stdout()?;
 
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.to_lowercase();
-        let input = input.trim();
-
-        return match input {
+        return match read_line()?.to_lowercase().as_str() {
             "y" => Ok(true),
             "n" => Ok(false),
             "" => {
@@ -107,12 +102,22 @@ impl Text {
     pub fn prompt(&self) -> Result<String, Error> {
         print!("{}", self.message);
         flush_stdout()?;
-        let input: String = self.collect_input()?;
+        let input: String = read_line()?;
+        if self.secret {
+            ansi::cursor::previous_line();
+            ansi::erase::line();
+            flush_stdout()?;
+        }
 
         if self.confirm {
             print!("Again:");
             flush_stdout()?;
-            let confirm: String = self.collect_input()?;
+            let confirm: String = read_line()?;
+            if self.secret {
+                ansi::cursor::previous_line();
+                ansi::erase::line();
+                flush_stdout()?;
+            }
 
             if input != confirm {
                 return Err(Error::other("confirmation doesn't match"));
@@ -124,28 +129,6 @@ impl Text {
         }
 
         Ok(input)
-    }
-
-    ////////////////////////////////////////////////////////////////////////////
-    /// common run methods
-
-    fn collect_input(&self) -> Result<String, Error> {
-        let mut result: Vec<char> = vec![];
-        loop {
-            let kp: char = get_keypress_char()?;
-            if kp == '\n' {
-                break;
-            }
-
-            if self.secret {
-                ansi::cursor::back();
-                print!("*");
-                flush_stdout()?;
-            }
-
-            result.push(kp);
-        }
-        Ok(result.into_iter().collect())
     }
 }
 
@@ -480,18 +463,10 @@ fn get_keypress_action() -> Result<Action, Error> {
     }
 }
 
-fn get_keypress_char() -> Result<char, Error> {
-    commands::run_silent("stty -F /dev/tty cbreak min 1")?;
-    let mut buffer: [u8; 1] = [0; 1];
-    io::stdin().read_exact(&mut buffer)?;
-    commands::run("stty -F /dev/tty sane")?;
-
-    let result: Option<char> = char::from_u32(buffer[0] as u32);
-    if result.is_none() {
-        return Err(Error::other("failed to convert u8 to char"));
-    }
-
-    Ok(result.unwrap())
+fn read_line() -> Result<String, Error> {
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    Ok(input.trim_end_matches('\n').into())
 }
 
 fn flush_stdout() -> Result<(), Error> {
