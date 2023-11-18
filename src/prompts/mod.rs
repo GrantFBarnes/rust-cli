@@ -236,21 +236,27 @@ impl Select {
     ////////////////////////////////////////////////////////////////////////////
     /// run methods
 
-    pub fn prompt_for_value(&self) -> Result<String, Error> {
-        let index: usize = self.prompt_for_index()?;
-        let result: Option<&String> = self.options.get(index);
+    pub fn prompt_for_value(&self) -> Result<Option<String>, Error> {
+        let index: Option<usize> = self.prompt_for_index()?;
+        if index.is_none() {
+            return Ok(None);
+        }
+        let result: Option<&String> = self.options.get(index.unwrap());
         if result.is_none() {
             return Err(Error::other("index invalid"));
         }
-        Ok(result.unwrap().to_string())
+        Ok(Some(result.unwrap().to_string()))
     }
 
-    pub fn prompt_for_index(&self) -> Result<usize, Error> {
+    pub fn prompt_for_index(&self) -> Result<Option<usize>, Error> {
         let indexes: Vec<usize> = self.prompt_and_erase(false)?;
-        if indexes.len() != 1 {
+        if indexes.len() > 1 {
             return Err(Error::other("selection invalid"));
         }
-        Ok(indexes[0])
+        if indexes.len() == 0 {
+            return Ok(None);
+        }
+        Ok(Some(indexes[0]))
     }
 
     pub fn prompt_for_values(&self) -> Result<Vec<String>, Error> {
@@ -322,8 +328,10 @@ impl Select {
 
         self.print_options(current_index, &selected_indexes, is_multi_select);
 
+        let mut result: Vec<usize> = vec![];
         loop {
             match get_keypress_action()? {
+                Action::Exit => return Ok(result),
                 Action::Submit => break,
                 Action::Up => {
                     if current_index == 0 {
@@ -375,14 +383,12 @@ impl Select {
                         }
                     }
                 }
-                Action::Exit => return Err(Error::other("no selection made")),
                 Action::None => continue,
             }
 
             self.print_options(current_index, &selected_indexes, is_multi_select);
         }
 
-        let mut result: Vec<usize> = vec![];
         if is_multi_select {
             for i in 0..selected_indexes.len() {
                 if selected_indexes[i] {
