@@ -246,7 +246,7 @@ impl Select {
     }
 
     pub fn prompt_for_index(&self) -> Result<usize, Error> {
-        let indexes: Vec<usize> = self.prompt(false)?;
+        let indexes: Vec<usize> = self.prompt_and_erase(false)?;
         if indexes.len() != 1 {
             return Err(Error::other("selection invalid"));
         }
@@ -269,11 +269,27 @@ impl Select {
     }
 
     pub fn prompt_for_indexes(&self) -> Result<Vec<usize>, Error> {
-        self.prompt(true)
+        self.prompt_and_erase(true)
     }
 
     ////////////////////////////////////////////////////////////////////////////
     /// common run methods
+
+    fn prompt_and_erase(&self, is_multi_select: bool) -> Result<Vec<usize>, Error> {
+        let result = self.prompt(is_multi_select);
+        if self.erase_after {
+            for _ in 0..self.rows_per_page + 2 {
+                ansi::cursor::previous_line();
+                ansi::erase::line();
+            }
+            if self.last_page_index > 0 {
+                ansi::cursor::previous_line();
+                ansi::erase::line();
+            }
+            flush_stdout()?;
+        }
+        result
+    }
 
     fn prompt(&self, is_multi_select: bool) -> Result<Vec<usize>, Error> {
         if self.options.len() == 0 {
@@ -364,18 +380,6 @@ impl Select {
             }
 
             self.print_options(current_index, &selected_indexes, is_multi_select);
-        }
-
-        if self.erase_after {
-            for _ in 0..self.rows_per_page + 2 {
-                ansi::cursor::previous_line();
-                ansi::erase::line();
-            }
-            if self.last_page_index > 0 {
-                ansi::cursor::previous_line();
-                ansi::erase::line();
-            }
-            flush_stdout()?;
         }
 
         let mut result: Vec<usize> = vec![];
