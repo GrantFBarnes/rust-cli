@@ -1,5 +1,5 @@
 use std::io::Error;
-use std::process::{Command, Stdio};
+use std::process::{Command, ExitStatus, Stdio};
 use std::string::FromUtf8Error;
 
 pub struct Operation {
@@ -68,6 +68,16 @@ impl Operation {
         }
 
         Ok(output.unwrap())
+    }
+
+    pub fn run_status(&self) -> Result<ExitStatus, Error> {
+        let mut command: Command = self.get_command()?;
+
+        if self.directory.is_some() {
+            command.current_dir(self.directory.clone().unwrap());
+        }
+
+        command.status()
     }
 
     fn get_command(&self) -> Result<Command, Error> {
