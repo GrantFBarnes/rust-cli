@@ -38,7 +38,7 @@ impl Operation {
     ////////////////////////////////////////////////////////////////////////////
     /// run methods
 
-    pub fn run(&self) -> Result<String, Error> {
+    pub fn run(&self) -> Result<(), Error> {
         let mut command: Command = self.get_command()?;
 
         if self.directory.is_some() {
@@ -50,6 +50,16 @@ impl Operation {
         } else {
             command.stdout(Stdio::null()).stderr(Stdio::null())
         };
+
+        Ok(())
+    }
+
+    pub fn run_optput(&self) -> Result<String, Error> {
+        let mut command: Command = self.get_command()?;
+
+        if self.directory.is_some() {
+            command.current_dir(self.directory.clone().unwrap());
+        }
 
         let output: Vec<u8> = command.output()?.stdout;
         let output: Result<String, FromUtf8Error> = String::from_utf8(output);
