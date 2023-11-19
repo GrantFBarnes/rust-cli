@@ -38,7 +38,7 @@ impl Operation {
     ////////////////////////////////////////////////////////////////////////////
     /// run methods
 
-    pub fn run(&self) -> Result<(), Error> {
+    pub fn run(&self) -> Result<ExitStatus, Error> {
         let mut command: Command = self.get_command()?;
 
         if self.directory.is_some() {
@@ -51,7 +51,7 @@ impl Operation {
             command.stdout(Stdio::null()).stderr(Stdio::null())
         };
 
-        Ok(())
+        command.status()
     }
 
     pub fn run_output(&self) -> Result<String, Error> {
@@ -68,16 +68,6 @@ impl Operation {
         }
 
         Ok(output.unwrap())
-    }
-
-    pub fn run_status(&self) -> Result<ExitStatus, Error> {
-        let mut command: Command = self.get_command()?;
-
-        if self.directory.is_some() {
-            command.current_dir(self.directory.clone().unwrap());
-        }
-
-        command.status()
     }
 
     fn get_command(&self) -> Result<Command, Error> {
