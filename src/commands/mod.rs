@@ -54,7 +54,7 @@ impl Operation {
         Ok(())
     }
 
-    pub fn run_optput(&self) -> Result<String, Error> {
+    pub fn run_output(&self) -> Result<String, Error> {
         let mut command: Command = self.get_command()?;
 
         if self.directory.is_some() {
