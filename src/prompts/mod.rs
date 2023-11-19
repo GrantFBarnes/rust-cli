@@ -32,7 +32,7 @@ impl Confirm {
     ////////////////////////////////////////////////////////////////////////////
     /// run methods
 
-    pub fn confirm(&self) -> Result<bool, Error> {
+    pub fn run(&self) -> Result<bool, Error> {
         print!("{}", self.message);
         if self.default_no {
             print!("[y/N]");
@@ -99,7 +99,7 @@ impl Text {
     ////////////////////////////////////////////////////////////////////////////
     /// run methods
 
-    pub fn prompt(&self) -> Result<String, Error> {
+    pub fn run(&self) -> Result<String, Error> {
         print!("{}", self.message);
         flush_stdout()?;
         let input: String = read_line()?;
@@ -236,8 +236,8 @@ impl Select {
     ////////////////////////////////////////////////////////////////////////////
     /// run methods
 
-    pub fn prompt_for_value(&self) -> Result<Option<String>, Error> {
-        let index: Option<usize> = self.prompt_for_index()?;
+    pub fn run_select_value(&self) -> Result<Option<String>, Error> {
+        let index: Option<usize> = self.run_select_index()?;
         if index.is_none() {
             return Ok(None);
         }
@@ -248,7 +248,7 @@ impl Select {
         Ok(Some(result.unwrap().to_string()))
     }
 
-    pub fn prompt_for_index(&self) -> Result<Option<usize>, Error> {
+    pub fn run_select_index(&self) -> Result<Option<usize>, Error> {
         let indexes: Vec<usize> = self.prompt_and_erase(false)?;
         if indexes.len() > 1 {
             return Err(Error::other("selection invalid"));
@@ -259,8 +259,8 @@ impl Select {
         Ok(Some(indexes[0]))
     }
 
-    pub fn prompt_for_values(&self) -> Result<Vec<String>, Error> {
-        let indexes: Vec<usize> = self.prompt_for_indexes()?;
+    pub fn run_multi_select_values(&self) -> Result<Vec<String>, Error> {
+        let indexes: Vec<usize> = self.run_multi_select_indexes()?;
 
         let mut result: Vec<String> = vec![];
         for i in indexes {
@@ -274,7 +274,7 @@ impl Select {
         Ok(result)
     }
 
-    pub fn prompt_for_indexes(&self) -> Result<Vec<usize>, Error> {
+    pub fn run_multi_select_indexes(&self) -> Result<Vec<usize>, Error> {
         self.prompt_and_erase(true)
     }
 
@@ -284,11 +284,14 @@ impl Select {
     fn prompt_and_erase(&self, is_multi_select: bool) -> Result<Vec<usize>, Error> {
         let result = self.prompt(is_multi_select);
         if self.erase_after {
-            for _ in 0..self.rows_per_page + 2 {
-                ansi::cursor::previous_line();
-                ansi::erase::line();
+            let mut lines_to_erase: usize = self.rows_per_page;
+            if self.title.is_some() {
+                lines_to_erase += 1;
             }
             if self.last_page_index > 0 {
+                lines_to_erase += 1;
+            }
+            for _ in 0..lines_to_erase {
                 ansi::cursor::previous_line();
                 ansi::erase::line();
             }

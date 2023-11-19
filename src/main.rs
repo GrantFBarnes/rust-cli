@@ -20,10 +20,10 @@ fn main() {
 fn test_confirm() -> Result<(), std::io::Error> {
     println!("---------- confirm ----------");
     let confirm = Confirm::new().message("Confirm");
-    dbg!(confirm.confirm()?);
+    dbg!(confirm.run()?);
 
     let confirm = confirm.default_no(true);
-    dbg!(confirm.confirm()?);
+    dbg!(confirm.run()?);
 
     return Ok(());
 }
@@ -31,10 +31,10 @@ fn test_confirm() -> Result<(), std::io::Error> {
 fn test_prompt() -> Result<(), std::io::Error> {
     println!("---------- prompt ----------");
     let prompt = Text::new().message("Prompt:");
-    dbg!(prompt.prompt()?);
+    dbg!(prompt.run()?);
 
     let prompt = prompt.secret(true).confirm(true).required(true);
-    dbg!(prompt.prompt()?);
+    dbg!(prompt.run()?);
 
     return Ok(());
 }
@@ -52,13 +52,13 @@ fn test_select() -> Result<(), std::io::Error> {
         .details(&vec!["first", "", "third", "fourth"]);
 
     let select = select.max_rows_per_page(10);
-    dbg!(select.prompt_for_value()?);
+    dbg!(select.run_select_value()?);
 
     let select = select.max_rows_per_page(5);
-    dbg!(select.prompt_for_index()?);
+    dbg!(select.run_select_index()?);
 
     let select = select.default_index(7);
-    dbg!(select.prompt_for_values()?);
+    dbg!(select.run_multi_select_values()?);
 
     return Ok(());
 }
