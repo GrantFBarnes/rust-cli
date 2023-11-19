@@ -1,3 +1,5 @@
+use super::color::Color;
+
 // Reset font to normal. All attributes turned off.
 pub fn reset() {
     print!("\x1b[0m");
@@ -89,41 +91,12 @@ pub fn default() {
     print!("\x1b[10m");
 }
 
-pub enum Color {
-    BLACK,
-    RED,
-    GREEN,
-    YELLOW,
-    BLUE,
-    MAGENTA,
-    CYAN,
-    WHITE,
-}
-
 // Set font text color.
 pub fn text_color(color: Color) {
-    match color {
-        Color::BLACK => print!("\x1b[30m"),
-        Color::RED => print!("\x1b[31m"),
-        Color::GREEN => print!("\x1b[32m"),
-        Color::YELLOW => print!("\x1b[33m"),
-        Color::BLUE => print!("\x1b[34m"),
-        Color::MAGENTA => print!("\x1b[35m"),
-        Color::CYAN => print!("\x1b[36m"),
-        Color::WHITE => print!("\x1b[37m"),
-    }
+    print!("{}", color.as_str());
 }
 
 // Set font background color.
 pub fn background_color(color: Color) {
-    match color {
-        Color::BLACK => print!("\x1b[40m"),
-        Color::RED => print!("\x1b[41m"),
-        Color::GREEN => print!("\x1b[42m"),
-        Color::YELLOW => print!("\x1b[44m"),
-        Color::BLUE => print!("\x1b[44m"),
-        Color::MAGENTA => print!("\x1b[45m"),
-        Color::CYAN => print!("\x1b[46m"),
-        Color::WHITE => print!("\x1b[47m"),
-    }
+    print!("{}", color.as_bg_str());
 }

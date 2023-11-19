@@ -430,7 +430,7 @@ impl Select {
 
             if is_multi_select {
                 if selected_indexes[idx] {
-                    ansi::font::text_color(ansi::font::Color::GREEN);
+                    ansi::font::text_color(ansi::color::Color::GREEN);
                     print!(" [X] ");
                     ansi::font::reset();
                 } else {
@@ -446,7 +446,7 @@ impl Select {
 
             if idx == current_index {
                 ansi::font::bold(true);
-                ansi::font::text_color(ansi::font::Color::CYAN);
+                ansi::font::text_color(ansi::color::Color::CYAN);
             }
 
             print!("{}", self.options[idx]);
@@ -462,7 +462,7 @@ impl Select {
         }
 
         if self.last_page_index > 0 {
-            ansi::font::text_color(ansi::font::Color::WHITE);
+            ansi::font::text_color(ansi::color::Color::WHITE);
             ansi::font::faint(true);
             ansi::font::italic(true);
             let current_page: usize = current_index / self.rows_per_page;
