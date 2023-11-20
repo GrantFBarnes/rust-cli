@@ -41,10 +41,6 @@ impl Operation {
     pub fn run(&self) -> Result<ExitStatus, Error> {
         let mut command: Command = self.get_command()?;
 
-        if self.directory.is_some() {
-            command.current_dir(self.directory.clone().unwrap());
-        }
-
         if self.show_output {
             command.stdout(Stdio::inherit()).stderr(Stdio::inherit())
         } else {
@@ -57,10 +53,6 @@ impl Operation {
     pub fn run_output(&self) -> Result<String, Error> {
         let mut command: Command = self.get_command()?;
 
-        if self.directory.is_some() {
-            command.current_dir(self.directory.clone().unwrap());
-        }
-
         let output: Vec<u8> = command.output()?.stdout;
         let output: Result<String, FromUtf8Error> = String::from_utf8(output);
         if output.is_err() {
@@ -70,9 +62,16 @@ impl Operation {
         Ok(output.unwrap())
     }
 
+    ////////////////////////////////////////////////////////////////////////////
+    /// common run methods
+
     fn get_command(&self) -> Result<Command, Error> {
-        if self.command.contains("|") || self.command.contains("<") || self.command.contains(">") {
-            return Err(Error::other("cannot handle redirected output"));
+        if self.command.contains("&")
+            || self.command.contains("|")
+            || self.command.contains("<")
+            || self.command.contains(">")
+        {
+            return Err(Error::other("cannot handle complex commands"));
         }
 
         let mut command_split = self.command.split_whitespace();
@@ -86,6 +85,10 @@ impl Operation {
                 break;
             }
             command.arg(arg.unwrap());
+        }
+
+        if self.directory.is_some() {
+            command.current_dir(self.directory.clone().unwrap());
         }
 
         Ok(command)
