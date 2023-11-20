@@ -1,94 +1,96 @@
-use super::color::Color;
+use crate::ansi::Font;
+
+use super::Color;
 
 // Reset font to normal. All attributes turned off.
 pub fn reset() {
-    print!("\x1b[0m");
+    print!("{}", Font::Reset.as_str());
 }
 
 // Set font bold attribute.
 pub fn bold(enable: bool) {
     if enable {
-        print!("\x1b[1m");
+        print!("{}", Font::Bold.as_str());
     } else {
-        print!("\x1b[22m");
+        print!("{}", Font::Bold.as_disable_str());
     }
 }
 
 // Set font faint attribute.
 pub fn faint(enable: bool) {
     if enable {
-        print!("\x1b[2m");
+        print!("{}", Font::Faint.as_str());
     } else {
-        print!("\x1b[22m");
+        print!("{}", Font::Faint.as_disable_str());
     }
 }
 
 // Set font italic attribute.
 pub fn italic(enable: bool) {
     if enable {
-        print!("\x1b[3m");
+        print!("{}", Font::Italic.as_str());
     } else {
-        print!("\x1b[23m");
+        print!("{}", Font::Italic.as_disable_str());
     }
 }
 
 // Set font underline attribute.
 pub fn underline(enable: bool) {
     if enable {
-        print!("\x1b[4m");
+        print!("{}", Font::Underline.as_str());
     } else {
-        print!("\x1b[24m");
+        print!("{}", Font::Underline.as_disable_str());
     }
 }
 
 // Set font blink slowly attribute.
 pub fn slow_blink(enable: bool) {
     if enable {
-        print!("\x1b[5m");
+        print!("{}", Font::SlowBlink.as_str());
     } else {
-        print!("\x1b[25m");
+        print!("{}", Font::SlowBlink.as_disable_str());
     }
 }
 
 // Set font blink rapidly attribute.
 pub fn rapid_blink(enable: bool) {
     if enable {
-        print!("\x1b[6m");
+        print!("{}", Font::RapidBlink.as_str());
     } else {
-        print!("\x1b[25m");
+        print!("{}", Font::RapidBlink.as_disable_str());
     }
 }
 
 // Set font invert color attribute. (swap foreground and background colors);
 pub fn invert_color(enable: bool) {
     if enable {
-        print!("\x1b[7m");
+        print!("{}", Font::InverColor.as_str());
     } else {
-        print!("\x1b[27m");
+        print!("{}", Font::InverColor.as_disable_str());
     }
 }
 
 // Set font hide attribute.
 pub fn hide(enable: bool) {
     if enable {
-        print!("\x1b[8m");
+        print!("{}", Font::Hide.as_str());
     } else {
-        print!("\x1b[28m");
+        print!("{}", Font::Hide.as_disable_str());
     }
 }
 
 // Set font crossed-out/sriked attribute.
 pub fn strike(enable: bool) {
     if enable {
-        print!("\x1b[9m");
+        print!("{}", Font::Strike.as_str());
     } else {
-        print!("\x1b[29m");
+        print!("{}", Font::Strike.as_disable_str());
     }
 }
 
 // Set font to primary (default) font.
 pub fn default() {
-    print!("\x1b[10m");
+    print!("{}", Font::Default.as_str());
 }
 
 // Set font text color.
