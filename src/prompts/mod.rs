@@ -165,7 +165,7 @@ impl Select {
             options: vec![],
             details: vec![],
             default_index: 0,
-            max_rows_per_page: 15,
+            max_rows_per_page: 20,
             erase_after: false,
 
             rows_per_page: 0,
@@ -211,7 +211,7 @@ impl Select {
     }
 
     pub fn max_rows_per_page(mut self, val: usize) -> Self {
-        self.max_rows_per_page = val;
+        self.max_rows_per_page = if val < 1 { 1 } else { val };
         self.rows_per_page()
     }
 
