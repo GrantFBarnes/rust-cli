@@ -1,4 +1,4 @@
-use rust_cli::prompts::*;
+use rust_cli::prompts;
 
 fn main() {
     let result = test_confirm();
@@ -19,7 +19,7 @@ fn main() {
 
 fn test_confirm() -> Result<(), std::io::Error> {
     println!("---------- confirm ----------");
-    let confirm = Confirm::new().message("Confirm");
+    let confirm = prompts::confirm::Confirm::new("Confirm");
     dbg!(confirm.run()?);
 
     let confirm = confirm.default_no(true);
@@ -30,7 +30,7 @@ fn test_confirm() -> Result<(), std::io::Error> {
 
 fn test_prompt() -> Result<(), std::io::Error> {
     println!("---------- prompt ----------");
-    let prompt = Text::new().message("Prompt:");
+    let prompt = prompts::text::Text::new("Prompt:");
     dbg!(prompt.run()?);
 
     let prompt = prompt.secret(true).confirm(true).required(true);
@@ -41,7 +41,7 @@ fn test_prompt() -> Result<(), std::io::Error> {
 
 fn test_select() -> Result<(), std::io::Error> {
     println!("---------- select ----------");
-    let select = Select::new()
+    let select = prompts::select::Select::new()
         .title("Select Value")
         .options(&vec![
             "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
@@ -52,13 +52,13 @@ fn test_select() -> Result<(), std::io::Error> {
         .details(&vec!["first", "", "third", "fourth"]);
 
     let select = select.max_rows_per_page(10);
-    dbg!(select.run_select_value()?);
+    dbg!(select.run_select()?);
 
     let select = select.max_rows_per_page(5);
-    dbg!(select.run_select_index()?);
+    dbg!(select.run_select()?);
 
     let select = select.default_index(7);
-    dbg!(select.run_multi_select_values()?);
+    dbg!(select.run_multi_select()?);
 
     return Ok(());
 }
