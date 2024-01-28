@@ -475,25 +475,28 @@ impl Select {
 
 fn get_keypress_action() -> Result<Action, Error> {
     match keys::get_keypress()? {
-        keys::Key::A => Ok(Action::SelectAll),
-        keys::Key::H => Ok(Action::Left),
-        keys::Key::J => Ok(Action::Down),
-        keys::Key::K => Ok(Action::Up),
-        keys::Key::L => Ok(Action::Right),
-        keys::Key::Q => Ok(Action::Exit),
-        keys::Key::UpArrow => Ok(Action::Up),
-        keys::Key::DownArrow => Ok(Action::Down),
-        keys::Key::LeftArrow => Ok(Action::Left),
-        keys::Key::RightArrow => Ok(Action::Right),
+        keys::Key::ArrowDown => Ok(Action::Down),
+        keys::Key::ArrowLeft => Ok(Action::Left),
+        keys::Key::ArrowRight => Ok(Action::Right),
+        keys::Key::ArrowUp => Ok(Action::Up),
+
+        keys::Key::LowerA => Ok(Action::SelectAll),
+        keys::Key::LowerH => Ok(Action::Left),
+        keys::Key::LowerJ => Ok(Action::Down),
+        keys::Key::LowerK => Ok(Action::Up),
+        keys::Key::LowerL => Ok(Action::Right),
+        keys::Key::LowerQ => Ok(Action::Exit),
+
         keys::Key::Enter => {
             ansi::cursor::previous_line();
             keys::flush_stdout()?;
             return Ok(Action::Submit);
         }
         keys::Key::Escape => Ok(Action::Exit),
+        keys::Key::Space => Ok(Action::Select),
         keys::Key::Tab => Ok(Action::Down),
         keys::Key::ShiftTab => Ok(Action::Up),
-        keys::Key::Space => Ok(Action::Select),
+
         _ => Ok(Action::None),
     }
 }
