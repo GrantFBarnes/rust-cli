@@ -1,7 +1,8 @@
 use std::cmp;
-use std::io::{self, Error, Read, Write};
+use std::io::Error;
 
-use crate::{ansi, commands};
+use crate::ansi;
+use crate::keys;
 
 pub struct Confirm {
     message: String,
@@ -39,9 +40,9 @@ impl Confirm {
         } else {
             print!("[Y/n]");
         }
-        flush_stdout()?;
+        keys::flush_stdout()?;
 
-        return match read_line()?.to_lowercase().as_str() {
+        return match keys::get_line()?.to_lowercase().as_str() {
             "y" => Ok(true),
             "n" => Ok(false),
             "" => {
@@ -101,22 +102,22 @@ impl Text {
 
     pub fn run(&self) -> Result<String, Error> {
         print!("{}", self.message);
-        flush_stdout()?;
-        let input: String = read_line()?;
+        keys::flush_stdout()?;
+        let input: String = keys::get_line()?;
         if self.secret {
             ansi::cursor::previous_line();
             ansi::erase::line();
-            flush_stdout()?;
+            keys::flush_stdout()?;
         }
 
         if self.confirm {
             print!("Again:");
-            flush_stdout()?;
-            let confirm: String = read_line()?;
+            keys::flush_stdout()?;
+            let confirm: String = keys::get_line()?;
             if self.secret {
                 ansi::cursor::previous_line();
                 ansi::erase::line();
-                flush_stdout()?;
+                keys::flush_stdout()?;
             }
 
             if input != confirm {
@@ -295,7 +296,7 @@ impl Select {
                 ansi::cursor::previous_line();
                 ansi::erase::line();
             }
-            flush_stdout()?;
+            keys::flush_stdout()?;
         }
         result
     }
@@ -473,48 +474,26 @@ impl Select {
 }
 
 fn get_keypress_action() -> Result<Action, Error> {
-    commands::Operation::new("stty -F /dev/tty cbreak min 1").run()?;
-    let mut buffer: [u8; 3] = [0; 3];
-    io::stdin().read(&mut buffer)?;
-    commands::Operation::new("stty -F /dev/tty sane").run()?;
-
-    ansi::cursor::line_start();
-    ansi::erase::line();
-    flush_stdout()?;
-
-    match buffer {
-        [10, _, _] => {
+    match keys::get_keypress()? {
+        keys::Key::A => Ok(Action::SelectAll),
+        keys::Key::H => Ok(Action::Left),
+        keys::Key::J => Ok(Action::Down),
+        keys::Key::K => Ok(Action::Up),
+        keys::Key::L => Ok(Action::Right),
+        keys::Key::Q => Ok(Action::Exit),
+        keys::Key::UpArrow => Ok(Action::Up),
+        keys::Key::DownArrow => Ok(Action::Down),
+        keys::Key::LeftArrow => Ok(Action::Left),
+        keys::Key::RightArrow => Ok(Action::Right),
+        keys::Key::Enter => {
             ansi::cursor::previous_line();
-            flush_stdout()?;
+            keys::flush_stdout()?;
             return Ok(Action::Submit);
-        } // enter
-        [27, 91, 65] => return Ok(Action::Up),      // up arrow
-        [27, 91, 66] => return Ok(Action::Down),    // down arrow
-        [27, 91, 68] => return Ok(Action::Left),    // left arrow
-        [27, 91, 67] => return Ok(Action::Right),   // right arrow
-        [107, _, _] => return Ok(Action::Up),       // k
-        [106, _, _] => return Ok(Action::Down),     // j
-        [104, _, _] => return Ok(Action::Left),     // h
-        [108, _, _] => return Ok(Action::Right),    // l
-        [27, 91, 90] => return Ok(Action::Up),      // shift tab
-        [9, _, _] => return Ok(Action::Down),       // tab
-        [32, _, _] => return Ok(Action::Select),    // space
-        [97, _, _] => return Ok(Action::SelectAll), // a
-        [27, 0, 0] => return Ok(Action::Exit),      // escape
-        [113, _, _] => return Ok(Action::Exit),     // q
-        _ => return Ok(Action::None),
+        }
+        keys::Key::Escape => Ok(Action::Exit),
+        keys::Key::Tab => Ok(Action::Down),
+        keys::Key::ShiftTab => Ok(Action::Up),
+        keys::Key::Space => Ok(Action::Select),
+        _ => Ok(Action::None),
     }
-}
-
-fn read_line() -> Result<String, Error> {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
-    Ok(input.trim_end_matches('\n').into())
-}
-
-fn flush_stdout() -> Result<(), Error> {
-    if io::stdout().flush().is_err() {
-        return Err(Error::other("stdout flush failed"));
-    }
-    Ok(())
 }
