@@ -4,34 +4,29 @@ use std::string::FromUtf8Error;
 
 pub struct Operation {
     command: String,
-    directory: Option<String>,
-    show_output: bool,
+    current_dir: Option<String>,
+    hide_output: bool,
 }
 
 impl Operation {
-    pub fn new() -> Self {
+    pub fn new<S: Into<String>>(command: S) -> Self {
         Self {
-            command: String::new(),
-            directory: None,
-            show_output: false,
+            command: command.into(),
+            current_dir: None,
+            hide_output: false,
         }
     }
 
     ////////////////////////////////////////////////////////////////////////////
     /// input parameter set methods
 
-    pub fn command<S: Into<String>>(mut self, command: S) -> Self {
-        self.command = command.into();
+    pub fn current_dir<S: Into<String>>(mut self, directory: S) -> Self {
+        self.current_dir = Some(directory.into());
         self
     }
 
-    pub fn directory<S: Into<String>>(mut self, directory: S) -> Self {
-        self.directory = Some(directory.into());
-        self
-    }
-
-    pub fn show_output(mut self, val: bool) -> Self {
-        self.show_output = val;
+    pub fn hide_output(mut self, val: bool) -> Self {
+        self.hide_output = val;
         self
     }
 
@@ -41,16 +36,16 @@ impl Operation {
     pub fn run(&self) -> Result<ExitStatus, Error> {
         let mut command: Command = self.get_command()?;
 
-        if self.show_output {
-            command.stdout(Stdio::inherit()).stderr(Stdio::inherit())
-        } else {
+        if self.hide_output {
             command.stdout(Stdio::null()).stderr(Stdio::null())
+        } else {
+            command.stdout(Stdio::inherit()).stderr(Stdio::inherit())
         };
 
         command.status()
     }
 
-    pub fn run_output(&self) -> Result<String, Error> {
+    pub fn output(&self) -> Result<String, Error> {
         let mut command: Command = self.get_command()?;
 
         let output: Vec<u8> = command.output()?.stdout;
@@ -80,15 +75,15 @@ impl Operation {
             .ok_or(Error::other("program not provided"))?;
         let mut command: Command = Command::new(program);
         loop {
-            let arg: Option<&str> = command_split.next();
-            if arg.is_none() {
+            if let Some(arg) = command_split.next() {
+                command.arg(arg);
+            } else {
                 break;
             }
-            command.arg(arg.unwrap());
         }
 
-        if self.directory.is_some() {
-            command.current_dir(self.directory.clone().unwrap());
+        if let Some(dir) = &self.current_dir {
+            command.current_dir(dir);
         }
 
         Ok(command)

@@ -12,9 +12,8 @@ mod tests {
         let results: Vec<bool> = vec![false, false, true];
         for i in 0..inputs.len() {
             assert_eq!(
-                commands::Operation::new()
-                    .command(inputs[i])
-                    .directory("/")
+                commands::Operation::new(inputs[i])
+                    .current_dir("/")
                     .run()
                     .is_ok(),
                 results[i]
