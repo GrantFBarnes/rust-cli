@@ -1,6 +1,5 @@
 use std::io::{self, Error, Read, Write};
 
-use crate::ansi;
 use crate::commands;
 
 #[derive(PartialEq)]
@@ -87,13 +86,10 @@ pub enum Key {
 
 pub fn get_keypress() -> Result<Key, Error> {
     commands::Operation::new("stty -F /dev/tty cbreak min 1").run()?;
+    commands::Operation::new("stty -F /dev/tty -echo").run()?;
     let mut buffer: [u8; 3] = [0; 3];
     io::stdin().read(&mut buffer)?;
     commands::Operation::new("stty -F /dev/tty sane").run()?;
-
-    ansi::cursor::line_start();
-    ansi::erase::line();
-    flush_stdout()?;
 
     match buffer {
         [97, _, _] => Ok(Key::LowerA),
@@ -166,11 +162,7 @@ pub fn get_keypress() -> Result<Key, Error> {
         [27, 91, 67] => Ok(Key::ArrowRight),
         [27, 91, 68] => Ok(Key::ArrowLeft),
 
-        [10, 0, 0] => {
-            ansi::cursor::previous_line();
-            flush_stdout()?;
-            Ok(Key::Enter)
-        }
+        [10, 0, 0] => Ok(Key::Enter),
         [27, 0, 0] => Ok(Key::Escape),
         [32, 0, 0] => Ok(Key::Space),
         [127, 0, 0] => Ok(Key::Backspace),

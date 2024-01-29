@@ -136,7 +136,7 @@ impl Select {
     fn prompt_and_erase(&self, is_multi_select: bool) -> Result<Vec<usize>, Error> {
         let result = self.prompt(is_multi_select);
         if self.erase_after {
-            let mut lines_to_erase: usize = self.rows_per_page;
+            let mut lines_to_erase: usize = self.rows_per_page - 1;
             if self.title.is_some() {
                 lines_to_erase += 1;
             }
@@ -144,8 +144,8 @@ impl Select {
                 lines_to_erase += 1;
             }
             for _ in 0..lines_to_erase {
-                ansi::cursor::previous_line();
                 ansi::erase::line();
+                ansi::cursor::previous_line();
             }
             keys::flush_stdout()?;
         }
