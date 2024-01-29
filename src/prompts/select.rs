@@ -136,7 +136,7 @@ impl Select {
     fn prompt_and_erase(&self, is_multi_select: bool) -> Result<Vec<usize>, Error> {
         let result = self.prompt(is_multi_select);
         if self.erase_after {
-            let mut lines_to_erase: usize = self.rows_per_page - 1;
+            let mut lines_to_erase: usize = self.rows_per_page;
             if self.title.is_some() {
                 lines_to_erase += 1;
             }
@@ -144,8 +144,8 @@ impl Select {
                 lines_to_erase += 1;
             }
             for _ in 0..lines_to_erase {
-                ansi::erase::line();
                 ansi::cursor::previous_line();
+                ansi::erase::line();
             }
             keys::flush_stdout()?;
         }
@@ -320,6 +320,7 @@ impl Select {
             let current_page: usize = current_index / self.rows_per_page;
             println!("Page [{}/{}]", current_page + 1, self.last_page_index + 1);
             ansi::font::reset();
+            let _ = keys::flush_stdout();
         }
     }
 }
@@ -350,11 +351,7 @@ fn get_keypress_action() -> Result<Action, Error> {
         keys::Key::LowerL => Ok(Action::Right),
         keys::Key::LowerQ => Ok(Action::Exit),
 
-        keys::Key::Enter => {
-            ansi::cursor::previous_line();
-            keys::flush_stdout()?;
-            return Ok(Action::Submit);
-        }
+        keys::Key::Enter => Ok(Action::Submit),
         keys::Key::Escape => Ok(Action::Exit),
         keys::Key::Space => Ok(Action::Select),
         keys::Key::Tab => Ok(Action::Down),
