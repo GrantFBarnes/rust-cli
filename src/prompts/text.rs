@@ -1,6 +1,6 @@
 use std::io::Error;
 
-use crate::ansi;
+use crate::commands;
 use crate::keys;
 
 pub struct Text {
@@ -44,21 +44,31 @@ impl Text {
     pub fn run(&self) -> Result<String, Error> {
         print!("{}", self.message);
         keys::flush_stdout()?;
-        let input: String = keys::get_line()?;
+
         if self.secret {
-            ansi::cursor::previous_line();
-            ansi::erase::line();
-            keys::flush_stdout()?;
+            commands::Operation::new("stty -F /dev/tty -echo").run()?;
+        }
+
+        let input: String = keys::get_line()?;
+
+        if self.secret {
+            commands::Operation::new("stty -F /dev/tty sane").run()?;
+            println!();
         }
 
         if self.confirm {
             print!("Again:");
             keys::flush_stdout()?;
-            let confirm: String = keys::get_line()?;
+
             if self.secret {
-                ansi::cursor::previous_line();
-                ansi::erase::line();
-                keys::flush_stdout()?;
+                commands::Operation::new("stty -F /dev/tty -echo").run()?;
+            }
+
+            let confirm: String = keys::get_line()?;
+
+            if self.secret {
+                commands::Operation::new("stty -F /dev/tty sane").run()?;
+                println!();
             }
 
             if input != confirm {
