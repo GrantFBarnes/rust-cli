@@ -144,6 +144,7 @@ impl Select {
                 lines_to_erase += 1;
             }
             for _ in 0..lines_to_erase {
+                ansi::erase::line();
                 ansi::cursor::previous_line();
                 ansi::erase::line();
             }
