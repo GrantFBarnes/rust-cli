@@ -57,6 +57,15 @@ impl Operation {
         Ok(output.unwrap())
     }
 
+    pub fn exists(&self) -> Result<bool, Error> {
+        Ok(self
+            .get_command()?
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .status()
+            .is_ok())
+    }
+
     ////////////////////////////////////////////////////////////////////////////
     /// common run methods
 
